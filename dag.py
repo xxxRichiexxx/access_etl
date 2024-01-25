@@ -102,10 +102,10 @@ def access_loader(
 
     os.remove(local_file_path)
 
-    min_date = min(data['Дата операции'])
+    min_date = min(data['date_oper'])
     print(min_date)
 
-    max_date = max(data['Дата операции'])
+    max_date = max(data['date_oper'])
     print(max_date)
 
     dwh_conn = psycopg2.connect(
