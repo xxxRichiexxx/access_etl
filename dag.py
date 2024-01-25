@@ -208,7 +208,7 @@ with DAG(
                 'password': 'n0l2mgucgUrRRUassTjP',  
                 'domain_name': 'st', 
                 'share': 'public',
-                'file_path': r'\STT\Общая\Дирекция по маркетингу и развитию продаж\BI\Регистрация_обработка\Исходки\2022\июнь\июнь.mdb',
+                'file_path': r'\STT\Общая\Дирекция по маркетингу и развитию продаж\BI\Регистрация_обработка\Исходки\2022\ноябрь\ноябрь.mdb',
                 'local_file_path': r'/tmp/access/access.mdb',
                 'access_table': 'test',
                 'dwh_host': 'vs-dwh-gpm2.st.tech',
