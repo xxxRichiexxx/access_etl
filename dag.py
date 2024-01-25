@@ -97,6 +97,7 @@ def access_loader(
         source_conn.retrieveFile(share, file_path, file_obj)
 
     data = pd.read_csv(local_file_path, delimiter=';')
+    data.columns = dwh_columns
     print(data)
 
     os.remove(local_file_path)
