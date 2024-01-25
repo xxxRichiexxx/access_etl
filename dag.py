@@ -8,6 +8,7 @@ import pandas_access as mdb
 import sqlalchemy as sa
 from urllib.parse import quote
 import datetime as dt
+import pandas as pd
 
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
@@ -95,10 +96,27 @@ def access_loader(
     with open(local_file_path, 'wb') as file_obj:
         source_conn.retrieveFile(share, file_path, file_obj)
 
+    data = pd.read_csv(local_file_path, ';')
 
-    print('Читаем источник.')
-    df = mdb.read_table(local_file_path, "test", dtype=object)
-    print(df)
+    print(data)
+
+    dwh_conn = psycopg2.connect(
+        host=dwh_host,
+        port=dwh_port,
+        database=dwh_database,
+        user=dwh_user,
+        password=dwh_password,
+    )
+    
+    # with dwh_conn:
+    #     with dwh_conn.cursor() as dwh_cur:
+    #         copy_query = f"COPY {dwh_table} FROM STDIN WITH CSV HEADER DELIMITER ';' NULL ''"
+    #         dwh_cur.copy_expert(copy_query, local_file_path)
+
+
+
+    # df = mdb.read_table(local_file_path, "test", dtype=object)
+    # print(df)
     # with pyodbc.connect(access_conn_str) as access_conn:
     #     with access_conn.cursor() as cursor:
 
@@ -209,7 +227,7 @@ with DAG(
                 'domain_name': 'st', 
                 'share': 'public',
                 'file_path': r'\STT\Общая\Дирекция по маркетингу и развитию продаж\BI\Регистрация_обработка\Исходки\2022\ноябрь\ноябрь.mdb',
-                'local_file_path': r'/tmp/access/access.mdb',
+                'local_file_path': r'/tmp/access/data.csv',
                 'access_table': 'test',
                 'dwh_host': 'vs-dwh-gpm2.st.tech',
                 'dwh_port': '5432',
