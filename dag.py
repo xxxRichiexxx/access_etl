@@ -97,7 +97,7 @@ def access_loader(
 
 
     print('Читаем источник.')
-    df = mdb.read_table(local_file_path, "test", dtype=str)
+    df = mdb.read_table(local_file_path, "test", dtype_backend='pyarrow')
     print(df)
     # with pyodbc.connect(access_conn_str) as access_conn:
     #     with access_conn.cursor() as cursor:
