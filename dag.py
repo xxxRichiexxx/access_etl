@@ -102,10 +102,11 @@ def access_loader(
 
     os.remove(local_file_path)
 
-    min_date = dt.datetime.strptime(min(data['date_oper']), "%Y-%m-%d")
+    min_date = min(data['date_oper'])
+
     print(min_date)
 
-    max_date = dt.datetime(max(data['date_oper']), "%Y-%m-%d")
+    max_date = max(data['date_oper'])
     print(max_date)
 
     dwh_conn = psycopg2.connect(
