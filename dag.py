@@ -104,11 +104,11 @@ def access_loader(
 
     data['date_oper'] = pd.to_datetime(data['date_oper'],  dayfirst=True)
 
-    min_date = min(data['date_oper']).date
+    min_date = min(data['date_oper'])
 
     print(min_date)
 
-    max_date = max(data['date_oper']).date
+    max_date = max(data['date_oper'])
     print(max_date)
 
     dwh_conn = psycopg2.connect(
