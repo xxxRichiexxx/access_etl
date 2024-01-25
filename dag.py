@@ -97,8 +97,15 @@ def access_loader(
         source_conn.retrieveFile(share, file_path, file_obj)
 
     data = pd.read_csv(local_file_path, delimiter=';')
-
     print(data)
+
+    os.remove(local_file_path)
+
+    min_date = min(data['Дата операции'])
+    print(min_date)
+
+    max_date = max(data['Дата операции'])
+    print(max_date)
 
     dwh_conn = psycopg2.connect(
         host=dwh_host,
@@ -108,95 +115,53 @@ def access_loader(
         password=dwh_password,
     )
     
-    # with dwh_conn:
-    #     with dwh_conn.cursor() as dwh_cur:
-    #         copy_query = f"COPY {dwh_table} FROM STDIN WITH CSV HEADER DELIMITER ';' NULL ''"
-    #         dwh_cur.copy_expert(copy_query, local_file_path)
+    with dwh_conn:
+        with dwh_conn.cursor() as dwh_cur:
+
+            print('Обеспечиваем идемпотентность.')
+
+            dwh_cur.execute(
+                f"""
+                DELETE FROM {dwh_scheme}.{dwh_table} WHERE date_oper BETWEEN '{min_date}' AND '{max_date}';
+                """
+            )
+
+            dwh_cur.execute(
+                f"""
+                SELECT 1
+                FROM pg_partitions
+                WHERE schemaname = 'stage'
+                    AND tablename = '{dwh_table}'
+                    AND partitionname = 'p_{min_date.month}_{min_date.year}';
+                """
+            )
+
+            there_is_pt = dwh_cur.fetchone()
+            print('Проверяем наличие партиции', there_is_pt)
+
+            if not there_is_pt:
+
+                start_part_dt = min_date.replace(day=1)
+                print('start_part_dt', start_part_dt)
+                end_part_dt = (min_date.replace(day=28) + dt.timedelta(days=4)).replace(day=1)
+                print('end_part_dt', end_part_dt)
+
+                dwh_cur.execute(
+                    f"""
+                    ALTER TABLE {dwh_scheme}.{dwh_table}
+                    ADD PARTITION p_{min_date.month}_{min_date.year}
+                    START('{start_part_dt}') INCLUSIVE END('{end_part_dt}') EXCLUSIVE;
+                    """
+                )
+
+            dwh_columns = ','.join(dwh_columns)                
+
+            print('Осуществляем вставку данных.')
+            insert_stmt = f"INSERT INTO {dwh_scheme}.{dwh_table} ({dwh_columns}) VALUES %s"
+            psycopg2.extras.execute_values(dwh_cur, insert_stmt, data.values)
+            print('Вставка данных завершена.')
 
 
-
-    # df = mdb.read_table(local_file_path, "test", dtype=object)
-    # print(df)
-    # with pyodbc.connect(access_conn_str) as access_conn:
-    #     with access_conn.cursor() as cursor:
-
-    #         cursor.execute(
-    #             f"""
-    #             SELECT MIN("Дата операции") FROM {access_table}
-    #             """
-    #         )
-    #         min_date = cursor.fetchone()[0]
-    #         print(min_date)
-
-    #         cursor.execute(
-    #             f"""
-    #             SELECT MAX("Дата операции") FROM {access_table}
-    #             """
-    #         )
-    #         max_date = cursor.fetchone()[0]
-    #         print(max_date)
-    
-    #         query = f'SELECT * FROM {access_table}'
-    #         cursor.execute(query)
-    #         data = cursor.fetchall()
-
-    # access_conn.close()
-
-    # dwh_conn = psycopg2.connect(
-    #     host=dwh_host,
-    #     port=dwh_port,
-    #     database=dwh_database,
-    #     user=dwh_user,
-    #     password=dwh_password,
-    # )
-    
-    # with dwh_conn:
-    #     with dwh_conn.cursor() as dwh_cur:
-
-    #         print('Обеспечиваем идемпотентность.')
-
-    #         dwh_cur.execute(
-    #             f"""
-    #             DELETE FROM {dwh_scheme}.{dwh_table} WHERE date_oper BETWEEN '{min_date}' AND '{max_date}';
-    #             """
-    #         )
-
-    #         dwh_cur.execute(
-    #             f"""
-    #             SELECT 1
-    #             FROM pg_partitions
-    #             WHERE schemaname = 'stage'
-    #                 AND tablename = '{dwh_table}'
-    #                 AND partitionname = 'p_{min_date.month}_{min_date.year}';
-    #             """
-    #         )
-
-    #         there_is_pt = dwh_cur.fetchone()
-    #         print('Проверяем наличие партиции', there_is_pt)
-
-    #         if not there_is_pt:
-
-    #             start_part_dt = min_date.replace(day=1)
-    #             print('start_part_dt', start_part_dt)
-    #             end_part_dt = (min_date.replace(day=28) + dt.timedelta(days=4)).replace(day=1)
-    #             print('end_part_dt', end_part_dt)
-
-    #             dwh_cur.execute(
-    #                 f"""
-    #                 ALTER TABLE {dwh_scheme}.{dwh_table}
-    #                 ADD PARTITION p_{min_date.month}_{min_date.year}
-    #                 START('{start_part_dt}') INCLUSIVE END('{end_part_dt}') EXCLUSIVE;
-    #                 """
-    #             )
-
-    #         dwh_columns = ','.join(dwh_columns)                
-
-    #         print('Осуществляем вставку данных.')
-    #         insert_stmt = f"INSERT INTO {dwh_scheme}.{dwh_table} ({dwh_columns}) VALUES %s"
-    #         psycopg2.extras.execute_values(dwh_cur, insert_stmt, data)
-    #         print('Вставка данных завершена.')
-
-    # os.remove(local_file_path)
 
 
 default_args = {
@@ -235,7 +200,7 @@ with DAG(
                 'dwh_scheme': 'stage',
                 'dwh_user': 'shveynikovab',
                 'dwh_password': 'fk2QVnJH8i',
-                'dwh_table': 'registrations',
+                'dwh_table': 'registrations_tmp',
                 'dwh_columns': dwh_columns,
             },
         )
