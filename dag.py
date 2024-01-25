@@ -4,7 +4,7 @@ import psycopg2
 import psycopg2.extras
 import datetime as dt
 import os
-import pmdb
+import pandas_access as mdb
 import sqlalchemy as sa
 from urllib.parse import quote
 import datetime as dt
