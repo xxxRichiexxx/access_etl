@@ -96,7 +96,7 @@ def access_loader(
     with open(local_file_path, 'wb') as file_obj:
         source_conn.retrieveFile(share, file_path, file_obj)
 
-    data = pd.read_csv(local_file_path, ';')
+    data = pd.read_csv(local_file_path, delimiter=';')
 
     print(data)
 
