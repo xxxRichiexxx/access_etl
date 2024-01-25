@@ -102,7 +102,7 @@ def access_loader(
 
     os.remove(local_file_path)
 
-    data['date_oper'] = pd.to_datetime(data['date_oper'], '%d.%m.%Y')
+    data['date_oper'] = pd.to_datetime(data['date_oper'],  dayfirst=True)
 
     min_date = min(data['date_oper']).date
 
