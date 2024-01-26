@@ -35,6 +35,7 @@ def access_loader(
     dwh_password,
     dwh_table,
     dwh_columns,
+    smb_file_header = False,
 ):
     # Создание соединения SMB
     source_conn = SMBConnection(
@@ -51,11 +52,13 @@ def access_loader(
            'Путь к данному файлу хранится в переменной smb_file_path и задается через интерфейс airflow'))
     
     print(f'Копирую файл .csv из сетевой папки {smb_share+smb_file_path} на Airflow:', airflow_local_file_path)
+
     # Записываем файл из источника в приемник
     with open(airflow_local_file_path, 'wb') as file_obj:
         source_conn.retrieveFile(smb_share, smb_file_path, file_obj)
 
-    data = pd.read_csv(airflow_local_file_path, delimiter=';')
+    header = 1 if smb_file_header else 0
+    data = pd.read_csv(airflow_local_file_path, delimiter=';', header=header)
     data.columns = dwh_columns
     print('Получены следующие данные', data)
 
@@ -80,7 +83,8 @@ def access_loader(
 
             dwh_cur.execute(
                 f"""
-                DELETE FROM {dwh_scheme}.{dwh_table} WHERE date_oper BETWEEN '{min_date}' AND '{max_date}';
+                DELETE FROM {dwh_scheme}.{dwh_table} 
+                WHERE date_oper BETWEEN '{min_date}' AND '{max_date}';
                 """
             )
 
@@ -119,7 +123,12 @@ def access_loader(
             print('Осуществляем вставку данных.')
 
             with open(airflow_local_file_path, 'r', newline='', encoding='utf-8') as csv_file:
-                copy_query = f"COPY {dwh_scheme}.{dwh_table} ({dwh_columns}) FROM STDIN WITH CSV DELIMITER ';'"
+
+                header = 'HEADER' if smb_file_header else ''
+                copy_query = f""""
+                              COPY {dwh_scheme}.{dwh_table} ({dwh_columns}) 
+                              FROM STDIN WITH CSV DELIMITER ';' {header}
+                              """
                 dwh_cur.copy_expert(copy_query, csv_file)
             
             print('Вставка данных завершена.')
