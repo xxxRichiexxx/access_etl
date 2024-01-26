@@ -1,11 +1,8 @@
 from smb.SMBConnection import SMBConnection
-import pyodbc
 import psycopg2
 import psycopg2.extras
 import datetime as dt
 import os
-import pandas_access as mdb
-import sqlalchemy as sa
 from urllib.parse import quote
 import datetime as dt
 import pandas as pd
@@ -15,70 +12,21 @@ from airflow.operators.python_operator import PythonOperator
 from airflow.utils.task_group import TaskGroup
 from airflow.hooks.base import BaseHook
 from airflow.operators.dummy import DummyOperator
-from airflow.contrib.operators.vertica_operator import VerticaOperator
-from airflow.operators.python import BranchPythonOperator
-
-from isc_etl.scripts.collable import etl, date_check, contracting_calculate
+from airflow.models import Variable
 
 
-dwh_columns = [
-    'coato_registr',
-    'type_ts',
-    'date_reg',      	          
-    'date_oper',     	         
-    'product',    	          
-    'year',                   
-    'vin',                       
-    'num_body',                  
-    'num_engine',                 
-    'num_shassis',    
-    'code_tech_oper', 	 
-    'affiliation',    
-    'power',           
-    'volume',           
-    'type_engine',     
-    'wheel',          
-    'code_ts',          
-    "comment",         
-    'max_massa',        
-    'min_massa',         
-    'full_name_owner',
-    'inn',                 
-    'district_owner',       
-    'city_owner',           
-    'brand',              
-    'model',                
-    "class",              
-    'type_model',       	 
-    'origin',           	  
-    'body',                
-    'formula',             
-    'id1',                  	
-    'district_new',     	  
-    'factory',             
-    'description_kind',       
-    'description_type',        
-    'country_brand',      
-    'eco_type',             
-    'body_type',            
-    'okved2',              
-    'activity_type',        
-    'class_new',           
-    'subclass',             
-    'coato_owner',
-    'form_ownership',
-]              
+smb_con = BaseHook.get_connection('STT SMB')
+dwh_con = BaseHook.get_connection('greenplum')           
 
 
 def access_loader(
-    share_hostname,
-    username,
-    password,
-    domain_name,
-    share,
-    file_path,
-    local_file_path,
-    access_table,
+    smb_hostname,
+    smb_username,
+    smb_password,
+    smb_domain_name,
+    smb_share,
+    smb_file_path,
+    airflow_local_file_path,
     dwh_host,
     dwh_port,
     dwh_database,
@@ -89,22 +37,30 @@ def access_loader(
     dwh_columns,
 ):
     # Создание соединения SMB
-    source_conn = SMBConnection(username, password, '', share_hostname, domain=domain_name, use_ntlm_v2=True)
-    source_conn.connect(share_hostname)  # Подключение к хосту
+    source_conn = SMBConnection(
+        smb_username, 
+        smb_password,
+        '',
+        smb_hostname,
+        domain=smb_domain_name,
+        use_ntlm_v2=True,
+    )
+    source_conn.connect(smb_hostname)  # Подключение к хосту
 
+    print(f'Копирую файл .csv из сетевой папки {smb_share+smb_file_path} на Airflow:', airflow_local_file_path)
     # Записываем файл из источника в приемник
-    with open(local_file_path, 'wb') as file_obj:
-        source_conn.retrieveFile(share, file_path, file_obj)
+    with open(airflow_local_file_path, 'wb') as file_obj:
+        source_conn.retrieveFile(smb_share, smb_file_path, file_obj)
 
-    data = pd.read_csv(local_file_path, delimiter=';')
+    data = pd.read_csv(airflow_local_file_path, delimiter=';')
     data.columns = dwh_columns
-    print(data)
+    print('Получены следующие данные', data)
 
     data['date_oper'] = pd.to_datetime(data['date_oper'])
     min_date = min(data['date_oper'])
-    print(min_date)
+    print('Минимальная дата операции', min_date)
     max_date = max(data['date_oper'])
-    print(max_date)
+    print('Максимальная дата операции', max_date)
 
     dwh_conn = psycopg2.connect(
         host=dwh_host,
@@ -125,6 +81,7 @@ def access_loader(
                 """
             )
 
+            print('Проверяем наличие партиции')
             dwh_cur.execute(
                 f"""
                 SELECT 1
@@ -136,10 +93,11 @@ def access_loader(
             )
 
             there_is_pt = dwh_cur.fetchone()
-            print('Проверяем наличие партиции', there_is_pt)
+            print(there_is_pt)
 
             if not there_is_pt:
 
+                print('Партиция не обнаружена, создаем.')
                 start_part_dt = min_date.replace(day=1)
                 print('start_part_dt', start_part_dt)
                 end_part_dt = (min_date.replace(day=28) + dt.timedelta(days=4)).replace(day=1)
@@ -156,16 +114,15 @@ def access_loader(
             dwh_columns = ','.join(dwh_columns)                
 
             print('Осуществляем вставку данных.')
-            # insert_stmt = f"INSERT INTO {dwh_scheme}.{dwh_table} ({dwh_columns}) VALUES %s"
-            # psycopg2.extras.execute_values(dwh_cur, insert_stmt, data.values)
 
-            with open(local_file_path, 'r', newline='', encoding='utf-8') as csv_file:
+            with open(airflow_local_file_path, 'r', newline='', encoding='utf-8') as csv_file:
                 copy_query = f"COPY {dwh_scheme}.{dwh_table} ({dwh_columns}) FROM STDIN WITH CSV DELIMITER ';'"
                 dwh_cur.copy_expert(copy_query, csv_file)
             
             print('Вставка данных завершена.')
 
-    os.remove(local_file_path)
+    print('Удаляем csv-файл с эйрфлоу')
+    os.remove(airflow_local_file_path)
 
 
 default_args = {
@@ -175,7 +132,7 @@ default_args = {
     'retry_delay': dt.timedelta(minutes=30),
 }
 with DAG(
-        'access_load',
+        'csv_load',
         default_args=default_args,
         description='Получение данных из файлов ACCESS.',
         start_date=dt.datetime(2023, 8, 13),
@@ -190,22 +147,65 @@ with DAG(
             task_id=f'get_data',
             python_callable=access_loader,
             op_kwargs={
-                'share_hostname': 'napp2750',
-                'username': 'PowerBI_integration',
-                'password': 'n0l2mgucgUrRRUassTjP',  
-                'domain_name': 'st', 
-                'share': 'public',
-                'file_path': r'\STT\Общая\Дирекция по маркетингу и развитию продаж\BI\Регистрация_обработка\Исходки\2022\ноябрь\test.csv',
-                'local_file_path': r'/tmp/access/test.csv',
-                'access_table': 'test',
-                'dwh_host': 'vs-dwh-gpm2.st.tech',
-                'dwh_port': '5432',
-                'dwh_database': 'test_dwh',
+                'smb_hostname': smb_con.host,
+                'smb_username': smb_con.login,
+                'smb_password': quote(smb_con.password),  
+                'smb_domain_name': smb_con.schema, 
+                'smb_share': 'public',
+                'smb_file_path': Variable.get('smb_file_path'),
+                'airflow_local_file_path': r'/tmp/access/data.csv',
+                'dwh_host': dwh_con.host,
+                'dwh_port': dwh_con.port,
+                'dwh_database': dwh_con.schema,
                 'dwh_scheme': 'stage',
-                'dwh_user': 'shveynikovab',
-                'dwh_password': 'fk2QVnJH8i',
+                'dwh_user': dwh_con.login,
+                'dwh_password': quote(dwh_con.password),
                 'dwh_table': 'registrations_tmp',
-                'dwh_columns': dwh_columns,
+                'dwh_columns': ['coato_registr',
+                                'type_ts',
+                                'date_reg',      	          
+                                'date_oper',     	         
+                                'product',    	          
+                                'year',                   
+                                'vin',                       
+                                'num_body',                  
+                                'num_engine',                 
+                                'num_shassis',    
+                                'code_tech_oper', 	 
+                                'affiliation',    
+                                'power',           
+                                'volume',           
+                                'type_engine',     
+                                'wheel',          
+                                'code_ts',          
+                                "comment",         
+                                'max_massa',        
+                                'min_massa',         
+                                'full_name_owner',
+                                'inn',                 
+                                'district_owner',       
+                                'city_owner',           
+                                'brand',              
+                                'model',                
+                                "class",              
+                                'type_model',       	 
+                                'origin',           	  
+                                'body',                
+                                'formula',             
+                                'id1',                  	
+                                'district_new',     	  
+                                'factory',             
+                                'description_kind',       
+                                'description_type',        
+                                'country_brand',      
+                                'eco_type',             
+                                'body_type',            
+                                'okved2',              
+                                'activity_type',        
+                                'class_new',           
+                                'subclass',             
+                                'coato_owner',
+                                'form_ownership'] ,
             },
         )
 
@@ -227,39 +227,3 @@ with DAG(
     end = DummyOperator(task_id='Конец')
 
     start >> data_to_stage >> data_to_dds >> data_to_dm >> data_checks >> end
-
-    # Если вы хотите использовать Linux для чтения данных из базы данных Access, вам потребуется другой драйвер, так как драйвер Microsoft Access не поддерживается в Linux. Вместо него вы можете использовать драйвер mdbtools.
-
-    # Вот пример кода с использованием драйвера mdbtools вместо pyodbc:
-
-    # 1. Установите необходимые пакеты для подключения к базе данных Access через mdbtools:
-
-    # sudo apt-get update
-    # sudo apt-get install mdbtools libmdb-dev
-
-
-    # 2. Затем в коде Python вы можете использовать модуль pmdb для чтения таблицы с помощью Pandas:
-
-    # import pandas as pd
-    # import pmdb
-
-    # # Задайте путь к вашей базе данных Access
-    # database_path = '/путь/к/вашей/базе/данных.mdb'
-
-    # # Создайте подключение к базе данных
-    # conn = pmdb.connect(database_path)
-
-    # # Укажите имя таблицы, которую вы хотите прочитать
-    # table_name = 'Название_таблицы'
-
-    # # Используйте функцию read_table() из Pandas для чтения таблицы в DataFrame
-    # df = pd.read_table(conn, table_name)
-
-    # # Выведите содержимое DataFrame
-    # print(df)
-
-
-    # Обратите внимание, что нужно изменить database_path на путь к файлу базы данных Access и table_name на имя таблицы, которую вы хотите прочитать.
-
-    # Таким образом, используя драйвер mdbtools вместо pyodbc, вы сможете читать данные из базы данных Access под Linux.
-
