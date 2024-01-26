@@ -100,14 +100,9 @@ def access_loader(
     data.columns = dwh_columns
     print(data)
 
-    os.remove(local_file_path)
-
     data['date_oper'] = pd.to_datetime(data['date_oper'])
-
     min_date = min(data['date_oper'])
-
     print(min_date)
-
     max_date = max(data['date_oper'])
     print(max_date)
 
@@ -158,14 +153,19 @@ def access_loader(
                     """
                 )
 
-            dwh_columns = ','.join(dwh_columns)                
+            # dwh_columns = ','.join(dwh_columns)                
 
             print('Осуществляем вставку данных.')
-            insert_stmt = f"INSERT INTO {dwh_scheme}.{dwh_table} ({dwh_columns}) VALUES %s"
-            psycopg2.extras.execute_values(dwh_cur, insert_stmt, data.values)
+            # insert_stmt = f"INSERT INTO {dwh_scheme}.{dwh_table} ({dwh_columns}) VALUES %s"
+            # psycopg2.extras.execute_values(dwh_cur, insert_stmt, data.values)
+
+            with open(local_file_path, 'r', newline='', encoding='utf-8') as csv_file:
+                copy_query = f"COPY {dwh_table} FROM STDIN WITH CSV HEADER DELIMITER ';' NULL ''"
+                dwh_cur.copy_expert(copy_query, csv_file)
+            
             print('Вставка данных завершена.')
 
-
+    os.remove(local_file_path)
 
 
 default_args = {
