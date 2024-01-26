@@ -57,7 +57,7 @@ def access_loader(
     with open(airflow_local_file_path, 'wb') as file_obj:
         source_conn.retrieveFile(smb_share, smb_file_path, file_obj)
 
-    header = 1 if smb_file_header else 0
+    header = 0 if smb_file_header else None
     data = pd.read_csv(airflow_local_file_path, delimiter=';', header=header)
     data.columns = dwh_columns
     print('Получены следующие данные', data)
