@@ -125,7 +125,7 @@ def access_loader(
             with open(airflow_local_file_path, 'r', newline='', encoding='utf-8') as csv_file:
 
                 header = 'HEADER' if smb_file_header else ''
-                copy_query = f""""
+                copy_query = f"""
                               COPY {dwh_scheme}.{dwh_table} ({dwh_columns}) 
                               FROM STDIN WITH CSV DELIMITER ';' {header}
                               """
