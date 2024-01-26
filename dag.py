@@ -45,8 +45,11 @@ def access_loader(
         domain=smb_domain_name,
         use_ntlm_v2=True,
     )
-    source_conn.connect(smb_hostname)  # Подключение к хосту
+    source_conn.connect(smb_hostname)  # Подключение к SMB-хосту
 
+    print(('ВНИМАНИЕ: данный ДАГ загружает в таблицу хранилища stage.registrations CSV-файл.',
+           'Путь к данному файлу хранится в переменной smb_file_path и задается через интерфейс airflow'))
+    
     print(f'Копирую файл .csv из сетевой папки {smb_share+smb_file_path} на Airflow:', airflow_local_file_path)
     # Записываем файл из источника в приемник
     with open(airflow_local_file_path, 'wb') as file_obj:
