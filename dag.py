@@ -35,7 +35,7 @@ def access_loader(
     dwh_password,
     dwh_table,
     dwh_columns,
-    smb_file_header = True,
+    smb_file_header=False,
 ):
     # Создание соединения SMB
     source_conn = SMBConnection(
