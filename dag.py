@@ -134,7 +134,7 @@ default_args = {
 with DAG(
         'csv_load',
         default_args=default_args,
-        description='Получение данных из файлов ACCESS.',
+        description='Получение данных из файлов csv.',
         start_date=dt.datetime(2023, 8, 13),
         schedule_interval=None,
 ) as dag:
