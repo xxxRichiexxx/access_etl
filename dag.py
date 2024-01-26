@@ -153,14 +153,14 @@ def access_loader(
                     """
                 )
 
-            # dwh_columns = ','.join(dwh_columns)                
+            dwh_columns = ','.join(dwh_columns)                
 
             print('Осуществляем вставку данных.')
             # insert_stmt = f"INSERT INTO {dwh_scheme}.{dwh_table} ({dwh_columns}) VALUES %s"
             # psycopg2.extras.execute_values(dwh_cur, insert_stmt, data.values)
 
             with open(local_file_path, 'r', newline='', encoding='utf-8') as csv_file:
-                copy_query = f"COPY {dwh_scheme}.{dwh_table} FROM STDIN WITH CSV HEADER DELIMITER ';' NULL ''"
+                copy_query = f"COPY {dwh_scheme}.{dwh_table} ({dwh_columns}) FROM STDIN WITH CSV DELIMITER ';'"
                 dwh_cur.copy_expert(copy_query, csv_file)
             
             print('Вставка данных завершена.')
