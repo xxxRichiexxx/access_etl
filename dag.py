@@ -160,7 +160,7 @@ def access_loader(
             # psycopg2.extras.execute_values(dwh_cur, insert_stmt, data.values)
 
             with open(local_file_path, 'r', newline='', encoding='utf-8') as csv_file:
-                copy_query = f"COPY {dwh_table} FROM STDIN WITH CSV HEADER DELIMITER ';' NULL ''"
+                copy_query = f"COPY {dwh_scheme}.{dwh_table} FROM STDIN WITH CSV HEADER DELIMITER ';' NULL ''"
                 dwh_cur.copy_expert(copy_query, csv_file)
             
             print('Вставка данных завершена.')
