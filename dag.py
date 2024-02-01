@@ -238,7 +238,14 @@ with DAG(
             postgres_conn_id='greenplum',
             sql='dds.internal_market_brands.sql',
         )
-        
+
+        internal_market_transport = PostgresOperator(
+            task_id='internal_market_transport',
+            postgres_conn_id='greenplum',
+            sql='dds.internal_market_transport.sql',
+        )
+
+        internal_market_brands >> internal_market_transport
 
     with TaskGroup('Загрузка_данных_в_dm_слой') as data_to_dm:
 
