@@ -74,7 +74,7 @@ sq2 AS(
         ON t.id_brand = b.id
 )
 SELECT
-    ,b.id
+    b.id
     ,sq1.type_ts
     ,sq1.product
     ,sq1."year"
