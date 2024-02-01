@@ -232,7 +232,11 @@ with DAG(
 
     with TaskGroup('Загрузка_данных_в_dds_слой') as data_to_dds:
 
-        pass
+        internal_market_brands = PostgresOperator(
+            task_id='internal_market_brands',
+            postgres_conn_id='greenplum',
+            sql='dds.internal_market_brands.sql',
+        )
         
 
     with TaskGroup('Загрузка_данных_в_dm_слой') as data_to_dm:
