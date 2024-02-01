@@ -116,7 +116,7 @@ LEFT JOIN sq2
         AND COALESCE(sq1.num_shassis, '0') = COALESCE(sq2.num_shassis, '0')
         AND COALESCE(sq1.power, '0') = COALESCE(sq2.power, '0')
         AND COALESCE(sq1.volume, '0') = COALESCE(sq2.volume, '0')
-        AND COALESCE(sq1.type_engine, '0') = COALESCE(q2.type_engine, '0')
+        AND COALESCE(sq1.type_engine, '0') = COALESCE(sq2.type_engine, '0')
         AND COALESCE(sq1.wheel, '0') = COALESCE(sq2.wheel, '0')
         AND COALESCE(sq1.code_ts, '0') = COALESCE(sq2.code_ts, '0')
         AND COALESCE(sq1."comment", '0') = COALESCE(sq2."comment", '0')
@@ -134,7 +134,7 @@ LEFT JOIN sq2
         AND COALESCE(sq1.eco_type, '0') = COALESCE(sq2.eco_type, '0')
         AND COALESCE(sq1.body_type, '0') = COALESCE(sq2.body_type, '0')
         AND COALESCE(sq1.class_new, '0') = COALESCE(sq2.class_new, '0')
-        AND COALESCE(sq1.subclass, '0') = COALESCE(sq1.subclass, '0')
+        AND COALESCE(sq1.subclass, '0') = COALESCE(sq2.subclass, '0')
 LEFT JOIN dds.internal_market_brands b
     ON COALESCE(sq1.brand, '0') = COALESCE(b.brand, '0')
     AND COALESCE(sq1.country_brand, '0') = COALESCE(b.country, '0')
