@@ -36,6 +36,7 @@ def access_loader(
     dwh_table,
     dwh_columns,
     smb_file_header=False,
+    **context,
 ):
     # Создание соединения SMB
     source_conn = SMBConnection(
@@ -135,6 +136,11 @@ def access_loader(
 
     print('Удаляем csv-файл с эйрфлоу')
     os.remove(airflow_local_file_path)
+
+    print('Пушим min_date и max_date в XCom')
+    context['ti'].xcom_push(key='min_date', value=min_date)
+    context['ti'].xcom_push(key='max_date', value=max_date)
+
 
 
 default_args = {
