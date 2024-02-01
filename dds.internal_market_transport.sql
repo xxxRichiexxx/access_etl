@@ -137,5 +137,5 @@ LEFT JOIN sq2
         AND COALESCE(sq1.subclass, '0') = COALESCE(sq1.subclass, '0')
 LEFT JOIN dds.internal_market_brands b
     ON COALESCE(sq1.brand, '0') = COALESCE(b.brand, '0')
-    AND COALESCE(sq1.country_brand, '0') = COALESCE(b.country, '0'); 
+    AND COALESCE(sq1.country_brand, '0') = COALESCE(b.country, '0')
 WHERE sq2.brand IS NULL;
