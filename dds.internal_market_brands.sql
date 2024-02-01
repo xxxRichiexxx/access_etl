@@ -16,4 +16,5 @@ FROM sq
 LEFT JOIN dds.internal_market_brands b
     ON COALESCE(sq.brand, '0') = COALESCE(b.brand, '0')
     AND COALESCE(sq.country_brand, '0') = COALESCE(b.country, '0')
-WHERE b.brand IS NULL;
+WHERE b.brand IS NULL
+RETURNING COUNT(*);
