@@ -31,7 +31,7 @@ INSERT INTO dds.internal_market_transport
 	,subclass
 )
 WITH
-sq1 (
+sq1 AS (
     SELECT DISTINCT
         r.brand
         ,r.country_brand
