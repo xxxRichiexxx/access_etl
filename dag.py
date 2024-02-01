@@ -141,8 +141,8 @@ def access_loader(
     os.remove(airflow_local_file_path)
 
     print('Пушим min_date и max_date в XCom')
-    context['ti'].xcom_push(key='min_date', value=min_date)
-    context['ti'].xcom_push(key='max_date', value=max_date)
+    context['ti'].xcom_push(key='min_date', value=str(min_date))
+    context['ti'].xcom_push(key='max_date', value=str(max_date))
 
 
 
