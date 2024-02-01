@@ -47,7 +47,10 @@ def access_loader(
         domain=smb_domain_name,
         use_ntlm_v2=True,
     )
-    source_conn.connect(smb_hostname)  # Подключение к SMB-хосту
+    try:
+        source_conn.connect(smb_hostname)  # Подключение к SMB-хосту
+    except:
+        raise Exception('Не могу получить целевой файл. Проверьте путь до файла.')
 
     print(('ВНИМАНИЕ: данный ДАГ загружает в таблицу хранилища stage.registrations CSV-файл.',
            'Путь к данному файлу хранится в переменной smb_file_path и задается через интерфейс airflow'))
