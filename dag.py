@@ -13,6 +13,7 @@ from airflow.utils.task_group import TaskGroup
 from airflow.hooks.base import BaseHook
 from airflow.operators.dummy import DummyOperator
 from airflow.models import Variable
+from airflow.providers.postgres.operators.postgres import PostgresOperator
 
 
 smb_con = BaseHook.get_connection('STT SMB')
