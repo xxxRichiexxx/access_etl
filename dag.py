@@ -98,7 +98,7 @@ def access_loader(
                 f"""
                 SELECT 1
                 FROM pg_partitions
-                WHERE schemaname = 'dds'
+                WHERE schemaname = {dwh_scheme}
                     AND tablename = '{dwh_table}'
                     AND partitionname = 'p_{min_date.month}_{min_date.year}';
                 """
@@ -175,7 +175,7 @@ def partition_check(
                 f"""
                 SELECT 1
                 FROM pg_partitions
-                WHERE schemaname = 'stage'
+                WHERE schemaname = {dwh_scheme}
                     AND tablename = '{dwh_table}'
                     AND partitionname = 'p_{min_date.month}_{min_date.year}';
                 """
