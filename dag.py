@@ -94,14 +94,15 @@ def access_loader(
             )
 
             print('Проверяем наличие партиции')
-            dwh_cur.execute(
-                f"""
+            query = f"""
                 SELECT 1
                 FROM pg_partitions
                 WHERE schemaname = '{dwh_scheme}'
                     AND tablename = '{dwh_table}'
                     AND partitionname = 'p_{min_date.month}_{min_date.year}';
                 """
+            dwh_cur.execute(
+                query
             )
 
             there_is_pt = dwh_cur.fetchone()
@@ -171,14 +172,16 @@ def partition_check(
         with dwh_conn.cursor() as dwh_cur:
 
             print('Проверяем наличие партиции')
-            dwh_cur.execute(
-                f"""
+            query = f"""
                 SELECT 1
                 FROM pg_partitions
                 WHERE schemaname = '{dwh_scheme}'
                     AND tablename = '{dwh_table}'
                     AND partitionname = 'p_{min_date.month}_{min_date.year}';
                 """
+            print(query)
+            dwh_cur.execute(
+                query
             )
 
             there_is_pt = dwh_cur.fetchone()
