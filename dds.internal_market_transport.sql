@@ -32,37 +32,7 @@ INSERT INTO dds.internal_market_transport
 )
 WITH
 sq1 AS (
-    SELECT DISTINCT
-        r.brand
-        ,r.country_brand
-        ,r.type_ts
-        ,r.product
-        ,r."year"
-        ,r.vin
-        ,r.num_body
-        ,r.num_engine
-        ,r.num_shassis
-        ,r.power
-        ,r.volume
-        ,r.type_engine
-        ,r.wheel
-        ,r.code_ts
-        ,r."comment"
-        ,r.max_massa
-        ,r.min_massa
-        ,r.model
-        ,r."class"
-        ,r.type_model
-        ,r.origin
-        ,r.body
-        ,r.formula
-        ,r.factory
-        ,r.description_kind
-        ,r.description_type
-        ,r.eco_type
-        ,r.body_type
-        ,r.class_new
-        ,r.subclass
+    SELECT *
     FROM stage.registrations r
     WHERE date_oper BETWEEN '{{ti.xcom_pull(key='min_date', task_ids='Загрузка_данных_в_stage_слой.get_data')}}'
         AND '{{ti.xcom_pull(key='max_date', task_ids='Загрузка_данных_в_stage_слой.get_data')}}'
@@ -73,7 +43,7 @@ sq2 AS(
     JOIN dds.internal_market_transport t
         ON t.id_brand = b.id
 )
-SELECT
+SELECT DISTINCT
     b.id
     ,sq1.type_ts
     ,sq1.product
