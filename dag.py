@@ -98,7 +98,7 @@ def access_loader(
                 f"""
                 SELECT 1
                 FROM pg_partitions
-                WHERE schemaname = 'stage'
+                WHERE schemaname = 'dds'
                     AND tablename = '{dwh_table}'
                     AND partitionname = 'p_{min_date.month}_{min_date.year}';
                 """
