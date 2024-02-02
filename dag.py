@@ -238,7 +238,7 @@ with DAG(
                 'dwh_scheme': 'stage',
                 'dwh_user': dwh_con.login,
                 'dwh_password': quote(dwh_con.password),
-                'dwh_table': 'registrations_tmp',
+                'dwh_table': 'registrations',
                 'dwh_columns': ['coato_registr',
                                 'type_ts',
                                 'date_reg',      	          
