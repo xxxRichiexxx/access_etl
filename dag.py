@@ -146,6 +146,62 @@ def access_loader(
     context['ti'].xcom_push(key='max_date', value=str(max_date))
 
 
+def partition_check(
+    dwh_host,
+    dwh_port,
+    dwh_database,
+    dwh_scheme,
+    dwh_user,
+    dwh_password,
+    dwh_table,
+    **context
+):
+    dwh_conn = psycopg2.connect(
+        host=dwh_host,
+        port=dwh_port,
+        database=dwh_database,
+        user=dwh_user,
+        password=dwh_password,
+    )
+
+    min_date = context['ti'].xcom_pull(key='min_date', task_ids='Загрузка_данных_в_stage_слой.get_data')
+    min_date = dt.datetime.strptime(min_date,"%Y-%m-%d")
+
+    with dwh_conn:
+        with dwh_conn.cursor() as dwh_cur:
+
+            print('Проверяем наличие партиции')
+            dwh_cur.execute(
+                f"""
+                SELECT 1
+                FROM pg_partitions
+                WHERE schemaname = 'stage'
+                    AND tablename = '{dwh_table}'
+                    AND partitionname = 'p_{min_date.month}_{min_date.year}';
+                """
+            )
+
+            there_is_pt = dwh_cur.fetchone()
+            print(there_is_pt)
+
+            if not there_is_pt:
+
+                print('Партиция не обнаружена, создаем.')
+                start_part_dt = min_date.replace(day=1)
+                print('start_part_dt', start_part_dt)
+                end_part_dt = (min_date.replace(day=28) + dt.timedelta(days=4)).replace(day=1)
+                print('end_part_dt', end_part_dt)
+
+                dwh_cur.execute(
+                    f"""
+                    ALTER TABLE {dwh_scheme}.{dwh_table}
+                    ADD PARTITION p_{min_date.month}_{min_date.year}
+                    START('{start_part_dt}') INCLUSIVE END('{end_part_dt}') EXCLUSIVE;
+                    """
+                )
+
+                print('Партиция создана.')
+
 
 default_args = {
     'owner': 'Швейников Андрей',
@@ -251,13 +307,27 @@ with DAG(
             sql='dds.internal_market_owner.sql',
         )
 
+        part_check = PythonOperator(
+            task_id=f'partition_check',
+            python_callable=partition_check,
+            op_kwargs={
+                'dwh_host': dwh_con.host,
+                'dwh_port': dwh_con.port,
+                'dwh_database': dwh_con.schema,
+                'dwh_scheme': 'dds',
+                'dwh_user': dwh_con.login,
+                'dwh_password': quote(dwh_con.password),
+                'dwh_table': 'internal_market_registration',
+            }
+        )
+
         internal_market_registration = PostgresOperator(
             task_id='internal_market_registration',
             postgres_conn_id='greenplum',
             sql='dds.internal_market_registration.sql',
         )
 
-        internal_market_brands >> [internal_market_transport, internal_market_owner] >> internal_market_registration
+        internal_market_brands >> [internal_market_transport, internal_market_owner] >> part_check >> internal_market_registration
 
     with TaskGroup('Загрузка_данных_в_dm_слой') as data_to_dm:
 
