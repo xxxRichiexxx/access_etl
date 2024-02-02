@@ -165,7 +165,7 @@ def partition_check(
     )
 
     min_date = context['ti'].xcom_pull(key='min_date', task_ids='Загрузка_данных_в_stage_слой.get_data')
-    min_date = dt.datetime.strptime(min_date,"%Y-%m-%d")
+    min_date = dt.datetime.strptime(min_date,"%Y-%m-%d %H:%M:%S")
 
     with dwh_conn:
         with dwh_conn.cursor() as dwh_cur:
